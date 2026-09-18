@@ -10,25 +10,28 @@ const ownerData = {
 	email: "admin@salon.com",
 	password: "admin123",
 	name: "Salon Admin",
+	phone: "09123456789",
+	role: "owner",
+
 };
 
 const managersData = [
-	{ name: "Ye", email: "ye@salon.com" },
-	{ name: "Khin", email: "khin@salon.com" },
+	{ name: "Ye", email: "ye@salon.com", phone: "09966233407" },
+	{ name: "Khin", email: "khin@salon.com", phone: "09797237421" },
 ];
 
 const staffData = [
 	// Glow Beauty Salon
-	{ name: "Mya", email: "mya@salon.com", specialty: "Hair Stylist", salon: "Glow Beauty Salon" },
-	{ name: "Nwe", email: "nwe@salon.com", specialty: "Colorist", salon: "Glow Beauty Salon" },
+	{ name: "Mya", email: "mya@salon.com", specialty: "Hair Stylist", salon: "Glow Beauty Salon",phone: "09123456789" },
+	{ name: "Nwe", email: "nwe@salon.com", specialty: "Colorist", salon: "Glow Beauty Salon",phone: "09123456789" },
 	// Style Studio
-	{ name: "Zaw", email: "zaw@salon.com", specialty: "Barber", salon: "Style Studio" },
-	{ name: "Htun", email: "htun@salon.com", specialty: "Nail Technician", salon: "Style Studio" },
+	{ name: "Zaw", email: "zaw@salon.com", specialty: "Barber", salon: "Style Studio",phone: "09123456789" },
+	{ name: "Htun", email: "htun@salon.com", specialty: "Nail Technician", salon: "Style Studio",phone: "09123456789" },
 ];
 
 const customersData = [
-	{ name: "Aye", email: "aye@salon.com" },
-	{ name: "Kyaw", email: "kyaw@salon.com" },
+	{ name: "Aye", email: "aye@salon.com", phone: "09123456789" },
+	{ name: "Kyaw", email: "kyaw@salon.com", phone: "09123456789" },
 ];
 
 const salonsData = [
@@ -37,6 +40,7 @@ const salonsData = [
 		slug: "glow-beauty-salon",
 		address: "78 35th Street, Mandalay",
 		phone: "09 780 123 456",
+		description: "A beautiful beauty salon offering top-notch services",
 		managerEmail: "ye@salon.com",
 	},
 	{
@@ -44,6 +48,7 @@ const salonsData = [
 		slug: "style-studio",
 		address: "62 78th Street, Mandalay",
 		phone: "09 250 987 654",
+		description: "Your one-stop shop for all styling needs",
 		managerEmail: "khin@salon.com",
 	},
 ];
@@ -68,7 +73,7 @@ async function main() {
 	if (!ownerUser) {
 		ownerUser = await prisma.$transaction(async (tx) => {
 			const user = await tx.user.create({
-				data: { email: ownerData.email, password: ownerHashedPassword, name: ownerData.name, role: Role.OWNER },
+				data: { email: ownerData.email, password: ownerHashedPassword, name: ownerData.name, phone: ownerData.phone, role: Role.OWNER },
 			});
 			await tx.owner.create({ data: { userId: user.id } });
 			return user;
@@ -89,7 +94,7 @@ async function main() {
 		if (!user) {
 			user = await prisma.$transaction(async (tx) => {
 				const u = await tx.user.create({
-					data: { email: m.email, password: hashedPassword, name: m.name, role: Role.MANAGER },
+					data: { email: m.email, password: hashedPassword, phone: m.phone, name: m.name, role: Role.MANAGER },
 				});
 				await tx.manager.create({ data: { userId: u.id } });
 				return u;
@@ -110,7 +115,7 @@ async function main() {
 		if (!salon) {
 			const managerId = managerMap.get(s.managerEmail) || null;
 			salon = await prisma.salon.create({
-				data: { name: s.name, slug: s.slug, address: s.address, phone: s.phone, ownerId: owner.id, managerId },
+				data: { name: s.name, slug: s.slug, address: s.address, phone: s.phone, ownerId: owner.id, description: s.description, managerId },
 			});
 			if (managerId) {
 				await prisma.manager.update({ where: { id: managerId }, data: { salonId: salon.id } });
@@ -131,7 +136,7 @@ async function main() {
 		if (!user) {
 			user = await prisma.$transaction(async (tx) => {
 				const u = await tx.user.create({
-					data: { email: st.email, password: hashedPassword, name: st.name, role: Role.STAFF },
+					data: { email: st.email, password: hashedPassword, phone: st.phone, name: st.name, role: Role.STAFF },
 				});
 				await tx.staff.create({
 					data: { userId: u.id, salonId, specialty: st.specialty },
@@ -150,7 +155,7 @@ async function main() {
 		if (!user) {
 			user = await prisma.$transaction(async (tx) => {
 				const u = await tx.user.create({
-					data: { email: c.email, password: hashedPassword, name: c.name, role: Role.CUSTOMER },
+					data: { email: c.email, password: hashedPassword, phone: c.phone, name: c.name, role: Role.CUSTOMER },
 				});
 				await tx.customer.create({ data: { userId: u.id } });
 				return u;
