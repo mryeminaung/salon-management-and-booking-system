@@ -3,7 +3,7 @@ import { Request } from "express";
 export interface JwtPayload {
   id: string;
   email: string;
-  role: "owner" | "manager" | "staff";
+  role: "owner" | "manager" | "staff" | "customer";
 }
 
 export interface AuthRequest extends Request {

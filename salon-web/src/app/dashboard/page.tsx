@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
+import type { Appointment } from "@/features/appointment/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { ProtectedLayout } from "@/components/protected-layout";
 import { RoleGuard } from "@/components/role-guard";
@@ -35,7 +38,6 @@ import {
   TrendingUp,
   DollarSign,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 // --- Demo data ---
 
@@ -128,9 +130,18 @@ function getCustomerActions(): QuickAction[] {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const [appointments, setAppointments] = useState<Appointment[] | null>(null);
+
+  useEffect(() => {
+    if (!user || !["manager", "staff", "customer"].includes(user.role.toLowerCase())) return;
+    let current = true;
+    api.get<{ data: Appointment[] }>("/api/appointments")
+      .then((response) => { if (current) setAppointments(response.data.data); })
+      .catch(() => { if (current) setAppointments([]); });
+    return () => { current = false; };
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -143,23 +154,31 @@ export default function DashboardPage() {
   if (!user) return null;
 
   const normalizedRole = user.role?.toLowerCase();
+  const now = new Date();
+  const upcoming = appointments?.filter((appointment) =>
+    (appointment.status === "pending" || appointment.status === "confirmed") && new Date(appointment.startAt) > now,
+  ).length;
+  const todayCount = appointments?.filter((appointment) =>
+    new Date(appointment.startAt).toDateString() === now.toDateString() && appointment.status !== "cancelled",
+  ).length;
+  const visitedSalons = appointments ? new Set(appointments.filter((appointment) => appointment.status === "completed").map((appointment) => appointment.salonName)).size : null;
 
   const stats: StatCard[] =
     normalizedRole === "manager"
       ? [
           { title: "Total Staff", value: "12", description: "Active members", icon: Users },
           { title: "Services", value: "24", description: "Active services", icon: Scissors },
-          { title: "Today's Bookings", value: "18", description: "Scheduled today", icon: Calendar },
+          { title: "Today's Bookings", value: todayCount ?? "...", description: "Scheduled today", icon: Calendar },
           { title: "Monthly Revenue", value: "$10.0k", description: "+18% from last month", icon: DollarSign },
         ]
       : normalizedRole === "customer"
       ? [
-          { title: "My Appointments", value: "3", description: "Upcoming", icon: Calendar },
-          { title: "Visited Salons", value: "7", description: "Total visits", icon: Scissors },
+          { title: "My Appointments", value: upcoming ?? "...", description: "Upcoming", icon: Calendar },
+          { title: "Visited Salons", value: visitedSalons ?? "...", description: "Completed visits", icon: Scissors },
         ]
       : [
-          { title: "Today's Appointments", value: "8", description: "Scheduled for you", icon: Calendar },
-          { title: "This Week", value: "26", description: "Total bookings", icon: Clock },
+          { title: "Today's Appointments", value: todayCount ?? "...", description: "Scheduled for you", icon: Calendar },
+          { title: "Upcoming", value: upcoming ?? "...", description: "Scheduled bookings", icon: Clock },
         ];
 
   const actions =

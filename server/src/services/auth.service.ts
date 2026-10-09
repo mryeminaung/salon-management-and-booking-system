@@ -7,7 +7,7 @@ interface RegisterInput {
 	email: string;
 	password: string;
 	name: string;
-	phone?: string;
+	phone: string;
 	role: RoleType;
 }
 

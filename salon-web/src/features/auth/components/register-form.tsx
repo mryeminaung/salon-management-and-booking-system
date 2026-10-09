@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import axios from "axios";
 import { AudioLinesIcon, RefreshCwIcon } from "lucide-react";
 
 import { useAuthStore, getDefaultRoute } from "@/stores/auth-store";
@@ -28,6 +29,7 @@ export default function RegisterForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -60,7 +62,11 @@ export default function RegisterForm() {
       const user = await register(registerData);
       router.push(getDefaultRoute(user.role));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(
+        axios.isAxiosError<{ error?: string }>(err)
+          ? err.response?.data?.error || err.message
+          : err instanceof Error ? err.message : "Registration failed"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -101,6 +107,17 @@ export default function RegisterForm() {
               placeholder="m@example.com"
               autoComplete="off"
               value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              type="tel"
+              autoComplete="tel"
+              value={formData.phone}
               onChange={handleChange}
               required
             />

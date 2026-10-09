@@ -64,7 +64,7 @@ export function StaffAssignDialog({ staffId, onOpenChange, onAssigned }: StaffAs
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="space-y-2">
             <label htmlFor="salon" className="text-sm font-medium">Salon</label>
-            <Select value={salonId} onValueChange={setSalonId}>
+            <Select value={salonId} onValueChange={(value) => setSalonId(value ?? "")}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a salon">
                   {selectedSalon?.name || "Select a salon"}

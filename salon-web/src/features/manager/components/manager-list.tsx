@@ -175,7 +175,7 @@ export function ManagerList() {
 										<div className="flex items-center gap-3">
 											<Avatar className="size-8">
 												<AvatarImage
-													src={manager.user?.avatar || "/avatars/user-1.webp"}
+													src="/avatars/user-1.webp"
 													alt={manager.user?.name}
 												/>
 												<AvatarFallback className="text-xs">

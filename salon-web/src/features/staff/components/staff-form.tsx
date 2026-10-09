@@ -140,7 +140,7 @@ export function StaffForm({ open, onOpenChange, staff, onSubmit }: StaffFormProp
           </div>
           <div className="space-y-2">
             <Label htmlFor="specialty">Specialty (optional)</Label>
-            <Select value={formData.specialty} onValueChange={(value) => setFormData({ ...formData, specialty: value })}>
+            <Select value={formData.specialty} onValueChange={(value) => setFormData({ ...formData, specialty: value ?? "" })}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select specialty">
                   {selectedSpecialty?.label || "Select specialty"}

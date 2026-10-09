@@ -22,7 +22,7 @@ interface AuthState {
     name: string;
     email: string;
     password: string;
-    phone?: string;
+    phone: string;
   }) => Promise<User>;
   logout: () => Promise<void>;
   fetchUser: () => Promise<void>;

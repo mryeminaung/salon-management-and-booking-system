@@ -4,8 +4,8 @@ import { Role } from "@prisma/constants";
 interface CreateSalonInput {
   name: string;
   address: string;
-  phone?: string;
-  description?: string;
+  phone: string;
+  description: string;
   isPublished?: boolean;
   openingHours?: Record<string, string>;
 }

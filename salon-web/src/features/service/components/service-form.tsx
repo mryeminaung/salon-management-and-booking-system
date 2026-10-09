@@ -83,7 +83,7 @@ export function ServiceForm({ open, onOpenChange, service, onSubmit }: ServiceFo
             </div>
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
-              <Select value={formData.duration} onValueChange={(value) => setFormData({ ...formData, duration: value })}>
+              <Select value={formData.duration} onValueChange={(value) => setFormData({ ...formData, duration: value ?? "" })}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select duration">
                     {selectedDuration?.label || "Select duration"}
