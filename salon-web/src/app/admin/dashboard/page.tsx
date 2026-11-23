@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import { useSalonStore } from "@/features/salon";
-import { useCustomerStore } from "@/features/customer";
 import { ProtectedLayout } from "@/components/protected-layout";
 import { RoleGuard } from "@/components/role-guard";
 import { PageHeader } from "@/components/page-header";
+import { KpiCard } from "@/components/kpi-card";
+import { DashboardQuickActions } from "@/components/dashboard-quick-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -33,7 +33,6 @@ import {
   Users,
   UserCheck,
   Briefcase,
-  ArrowRight,
   TrendingUp,
   DollarSign,
 } from "lucide-react";
@@ -101,10 +100,10 @@ const pieChartConfig = {
 } satisfies ChartConfig;
 
 const quickActions = [
-  { label: "Manage Salons", href: "/admin/salons", icon: Scissors },
-  { label: "Add Manager", href: "/admin/managers", icon: Users },
-  { label: "Manage Staff", href: "/admin/staff", icon: Users },
-  { label: "Manage Services", href: "/admin/services", icon: Scissors },
+  { label: "Manage salons", description: "Locations and publishing", href: "/admin/salons", icon: Scissors },
+  { label: "Add manager", description: "Assign location leadership", href: "/admin/managers", icon: Users },
+  { label: "Manage staff", description: "Team access and schedules", href: "/admin/staff", icon: Users },
+  { label: "Manage services", description: "Pricing and availability", href: "/admin/services", icon: Scissors },
 ];
 
 function getInitials(name: string) {
@@ -114,12 +113,10 @@ function getInitials(name: string) {
 export default function AdminDashboardPage() {
   const user = useAuthStore((s) => s.user);
   const { salons, fetchSalons } = useSalonStore();
-  const { customers, fetchCustomers } = useCustomerStore();
 
   useEffect(() => {
     fetchSalons();
-    fetchCustomers();
-  }, [fetchSalons, fetchCustomers]);
+  }, [fetchSalons]);
 
   const totalStaff = salons.reduce((acc, s) => acc + (s._count?.staff ?? 0), 0);
   const totalServices = salons.reduce((acc, s) => acc + (s._count?.services ?? 0), 0);
@@ -143,18 +140,13 @@ export default function AdminDashboardPage() {
           {/* Stat Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <stat.icon className="size-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
+              <KpiCard
+                key={stat.title}
+                title={stat.title}
+                value={stat.value}
+                description={stat.description}
+                icon={stat.icon}
+              />
             ))}
           </div>
 
@@ -242,55 +234,56 @@ export default function AdminDashboardPage() {
 
             {/* Pie Chart — Salon Type Breakdown */}
             <Card className="lg:col-span-3">
-              <CardHeader>
-                <CardTitle className="text-base">Salon Types</CardTitle>
+              <CardHeader className="pb-1">
+                <CardTitle className="text-base font-semibold">Salon types</CardTitle>
+                <p className="text-sm text-muted-foreground">Portfolio distribution by location type</p>
               </CardHeader>
-              <CardContent>
-                <ChartContainer config={pieChartConfig} className="h-[260px] w-full">
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-                    <Pie
-                      data={salonTypeBreakdown}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      innerRadius={50}
-                      strokeWidth={2}
-                      stroke="hsl(var(--background))"
-                    >
-                      {salonTypeBreakdown.map((entry) => (
-                        <Cell key={entry.name} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
+              <CardContent className="pt-2">
+                <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                  <div className="relative mx-auto w-full max-w-56">
+                    <ChartContainer config={pieChartConfig} className="h-[220px] w-full">
+                      <PieChart>
+                        <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
+                        <Pie
+                          data={salonTypeBreakdown}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={82}
+                          innerRadius={56}
+                          paddingAngle={2}
+                          cornerRadius={4}
+                          strokeWidth={0}
+                        >
+                          {salonTypeBreakdown.map((entry) => (
+                            <Cell key={entry.name} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-semibold tabular-nums">100%</span>
+                      <span className="text-[11px] text-muted-foreground">Portfolio</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-1">
+                    {salonTypeBreakdown.map((item) => (
+                      <div key={item.name} className="flex items-center gap-2.5">
+                        <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium">{item.name}</p>
+                          <p className="text-[11px] tabular-nums text-muted-foreground">{item.value}%</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Quick Actions */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {quickActions.map((action) => (
-                <Link
-                  key={action.href}
-                  href={action.href}
-                  className="group flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-all hover:shadow-md hover:border-primary/30"
-                >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <action.icon className="size-5" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">{action.label}</span>
-                  </div>
-                  <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              ))}
-            </div>
-          </div>
+          <DashboardQuickActions actions={quickActions} />
         </div>
       </RoleGuard>
     </ProtectedLayout>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import type { Appointment } from "@/features/appointment/types";
@@ -8,6 +7,11 @@ import { useAuthStore } from "@/stores/auth-store";
 import { ProtectedLayout } from "@/components/protected-layout";
 import { RoleGuard } from "@/components/role-guard";
 import { PageHeader } from "@/components/page-header";
+import { KpiCard } from "@/components/kpi-card";
+import {
+  DashboardQuickActions,
+  type DashboardQuickAction,
+} from "@/components/dashboard-quick-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -34,7 +38,6 @@ import {
   Calendar,
   Settings,
   Clock,
-  ArrowRight,
   TrendingUp,
   DollarSign,
 } from "lucide-react";
@@ -99,33 +102,27 @@ interface StatCard {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-interface QuickAction {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-function getManagerActions(): QuickAction[] {
+function getManagerActions(): DashboardQuickAction[] {
   return [
-    { label: "Manage Staff", href: "/staff", icon: Users },
-    { label: "Manage Services", href: "/services", icon: Scissors },
-    { label: "Appointments", href: "/appointments", icon: Calendar },
-    { label: "Settings", href: "/settings", icon: Settings },
+    { label: "Manage staff", description: "Team access and schedules", href: "/staff", icon: Users },
+    { label: "Manage services", description: "Pricing and availability", href: "/services", icon: Scissors },
+    { label: "Appointments", description: "Review the booking calendar", href: "/appointments", icon: Calendar },
+    { label: "Settings", description: "Salon and account preferences", href: "/settings", icon: Settings },
   ];
 }
 
-function getStaffActions(): QuickAction[] {
+function getStaffActions(): DashboardQuickAction[] {
   return [
-    { label: "My Schedule", href: "/schedule", icon: Calendar },
-    { label: "My Profile", href: "/profile", icon: UserCheck },
+    { label: "My schedule", description: "View upcoming working hours", href: "/schedule", icon: Calendar },
+    { label: "My profile", description: "Update personal information", href: "/profile", icon: UserCheck },
   ];
 }
 
-function getCustomerActions(): QuickAction[] {
+function getCustomerActions(): DashboardQuickAction[] {
   return [
-    { label: "Browse Salons", href: "/salons", icon: Scissors },
-    { label: "My Appointments", href: "/appointments", icon: Calendar },
-    { label: "My Profile", href: "/profile", icon: UserCheck },
+    { label: "Browse salons", description: "Discover services near you", href: "/salons", icon: Scissors },
+    { label: "My appointments", description: "Review upcoming bookings", href: "/appointments", icon: Calendar },
+    { label: "My profile", description: "Update personal information", href: "/profile", icon: UserCheck },
   ];
 }
 
@@ -200,18 +197,13 @@ export default function DashboardPage() {
           {/* Stat Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <stat.icon className="size-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-                </CardContent>
-              </Card>
+              <KpiCard
+                key={stat.title}
+                title={stat.title}
+                value={stat.value}
+                description={stat.description}
+                icon={stat.icon}
+              />
             ))}
           </div>
 
@@ -297,27 +289,7 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* Quick Actions */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {actions.map((action) => (
-                <Link
-                  key={action.href}
-                  href={action.href}
-                  className="group flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-all hover:shadow-md hover:border-primary/30"
-                >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <action.icon className="size-5" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="text-sm font-medium">{action.label}</span>
-                  </div>
-                  <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              ))}
-            </div>
-          </div>
+          <DashboardQuickActions actions={actions} />
         </div>
       </RoleGuard>
     </ProtectedLayout>
