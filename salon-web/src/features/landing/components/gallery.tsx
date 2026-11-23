@@ -1,65 +1,63 @@
 import Image from "next/image";
 
-const works = [
+const editorialImages = [
 	{
-		src: "/avatars/user-7.webp",
-		alt: "Balayage highlights on long hair",
-		className: "col-span-2 row-span-2",
+		src: "/landing/salon-hero.png",
+		alt: "A warm, modern salon interior during an appointment",
+		label: "The salon experience",
+		className: "md:col-span-7 md:row-span-2",
+		position: "object-center",
 	},
 	{
-		src: "/avatars/user-8.webp",
-		alt: "Classic men's fade haircut",
-		className: "",
+		src: "/landing/hair-editorial.png",
+		alt: "Dimensional brunette haircut and styling",
+		label: "Cut & colour",
+		className: "md:col-span-5",
+		position: "object-center",
 	},
 	{
-		src: "/avatars/user-9.webp",
-		alt: "Bridal updo hairstyle",
-		className: "",
-	},
-	{
-		src: "/avatars/user-10.webp",
-		alt: "Vibrant creative hair color",
-		className: "",
-	},
-	{
-		src: "/avatars/user-1.webp",
-		alt: "Sleek straight blowout",
-		className: "",
+		src: "/landing/nail-editorial.png",
+		alt: "A neutral manicure in progress",
+		label: "Nail artistry",
+		className: "md:col-span-5",
+		position: "object-center",
 	},
 ];
 
 export function Gallery() {
 	return (
-		<section id="gallery" className="py-16 sm:py-20 lg:py-24">
-			<div className="mx-auto max-w-6xl px-6">
-				<div className="text-center">
-					<p className="text-xs font-semibold tracking-[0.2em] text-gold uppercase">
-						Our Work
+		<section id="gallery" className="px-4 py-24 sm:px-6 sm:py-32">
+			<div className="mx-auto max-w-7xl">
+				<div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+					<div>
+						<p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">The edit</p>
+						<h2 className="mt-4 max-w-lg font-serif text-4xl leading-tight tracking-[-0.04em] sm:text-5xl">
+							Details make the difference.
+						</h2>
+					</div>
+					<p className="max-w-xl text-sm leading-7 text-muted-foreground sm:text-base lg:justify-self-end">
+						From the consultation to the final mirror check, the best appointments feel considered.
+						We help you find salons where craft, comfort, and personal attention come together.
 					</p>
-					<h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-						Style Showcase
-					</h2>
 				</div>
 
-				<div className="mt-16 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-					{works.map((work, i) => (
-						<div
-							key={i}
-							className={`group relative overflow-hidden rounded-xl bg-card border border-border ${work.className}`}>
-							<div className="relative h-full min-h-[180px] sm:min-h-[220px]">
-								<Image
-									src={work.src}
-									alt={work.alt}
-									fill
-									sizes="(max-width: 640px) 50vw, 25vw"
-									className="object-cover transition-transform duration-500 group-hover:scale-105"
-								/>
-							</div>
-							<div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-							<span className="absolute bottom-3 left-3 text-sm font-medium text-background opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-								{work.alt}
-							</span>
-						</div>
+				<div className="mt-12 grid auto-rows-[19rem] gap-5 md:grid-cols-12">
+					{editorialImages.map((image) => (
+						<figure
+							key={image.label}
+							className={`group relative overflow-hidden rounded-[1.75rem] bg-muted ${image.className}`}>
+							<Image
+								src={image.src}
+								alt={image.alt}
+								fill
+								sizes="(max-width: 768px) 92vw, 58vw"
+								className={`object-cover transition-transform duration-700 group-hover:scale-[1.025] ${image.position}`}
+							/>
+							<div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+							<figcaption className="absolute bottom-5 left-5 rounded-full border border-white/20 bg-black/25 px-4 py-2 text-xs font-medium text-white backdrop-blur">
+								{image.label}
+							</figcaption>
+						</figure>
 					))}
 				</div>
 			</div>

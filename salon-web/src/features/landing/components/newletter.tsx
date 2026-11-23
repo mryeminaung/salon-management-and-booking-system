@@ -1,30 +1,35 @@
+import Link from "next/link";
+import { ArrowRight, Sparkles } from "lucide-react";
+
 export function NewLetter() {
 	return (
-		<section className="py-16 sm:py-20 lg:py-24">
-			<div className="mx-auto max-w-6xl px-6">
-				<div className="relative overflow-hidden rounded-2xl bg-card px-8 py-20 text-center sm:px-16">
-					{/* Decorative blurs */}
-					<div className="absolute -top-20 -right-20 size-64 rounded-full bg-gold/20 blur-3xl" />
-					<div className="absolute -bottom-20 -left-20 size-64 rounded-full bg-gold/10 blur-3xl" />
-
-					{/* Newsletter */}
-					<div className="relative mx-auto max-w-lg">
-						<h2 className="text-3xl font-bold tracking-tight text-card-foreground sm:text-4xl">Subscribe to our newsletter</h2>
-						<p className="relative mx-auto mt-4 max-w-xl text-muted-foreground">
-							Stay updated on new services, seasonal offers, and styling tips.
-						</p>
-
-						<div className="flex gap-2 mt-5">
-							<input
-								type="email"
-								placeholder="you@domain.com"
-								className="flex-1 rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-gold"
-							/>
-							<button className="shrink-0 rounded-lg bg-gold px-5 py-2.5 text-sm font-medium text-background transition-colors hover:bg-gold/90">
-								Subscribe
-							</button>
+		<section className="px-4 py-20 sm:px-6 sm:py-28">
+			<div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-primary/25 bg-[#151511] px-6 py-16 text-white sm:px-12 sm:py-20 lg:px-20">
+				<div
+					aria-hidden
+					className="absolute -right-24 -top-32 size-[28rem] rounded-full bg-[#c9a82f]/20 blur-3xl"
+				/>
+				<div
+					aria-hidden
+					className="absolute -bottom-48 left-1/4 size-96 rounded-full bg-[#8b6f47]/20 blur-3xl"
+				/>
+				<div className="relative grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
+					<div className="max-w-3xl">
+						<div className="flex size-11 items-center justify-center rounded-full bg-[#c9a82f] text-[#17160f]">
+							<Sparkles className="size-5" />
 						</div>
+						<h2 className="mt-8 font-serif text-4xl leading-tight tracking-[-0.045em] sm:text-5xl lg:text-6xl">
+							Your next favourite salon is closer than you think.
+						</h2>
+						<p className="mt-5 max-w-xl text-sm leading-7 text-white/60 sm:text-base">
+							Create your account and make every appointment feel effortless from the start.
+						</p>
 					</div>
+					<Link
+						href="/register"
+						className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#c9a82f] px-6 text-sm font-semibold text-[#17160f] transition-transform hover:-translate-y-0.5">
+						Get started <ArrowRight className="size-4" />
+					</Link>
 				</div>
 			</div>
 		</section>

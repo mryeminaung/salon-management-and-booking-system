@@ -1,81 +1,61 @@
-import Image from "next/image";
 import Link from "next/link";
+import { AtSign, Mail, MapPin, Scissors } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const footerLinks = [
-	{
-		title: "Services",
-		links: [
-			{ label: "Haircut & Styling", href: "#services" },
-			{ label: "Hair Coloring", href: "#services" },
-			{ label: "Blowout & Blowdry", href: "#services" },
-			{ label: "Makeup Artistry", href: "#services" },
-			{ label: "Hair Treatments", href: "#services" },
-		],
-	},
-	{
-		title: "Quick Links",
-		links: [
-			{ label: "Our Work", href: "#gallery" },
-			{ label: "About Us", href: "#about" },
-			{ label: "FAQ", href: "#faq" },
-			{ label: "Book Now", href: "/booking" },
-		],
-	},
-	{
-		title: "Contact",
-		links: [
-			{ label: "123 Style Avenue, NY 10001", href: "#" },
-			{ label: "+1 (555) 123-4567", href: "#" },
-			{ label: "hello@salonhub.com", href: "#" },
-			{ label: "Mon–Sat: 9 AM – 8 PM", href: "#" },
-		],
-	},
+	{ label: "Services", href: "#services" },
+	{ label: "The experience", href: "#experience" },
+	{ label: "Our work", href: "#gallery" },
+	{ label: "FAQ", href: "#faq" },
 ];
 
 export function Footer() {
 	return (
-		<footer id="contact" className="py-8">
-			<div className="mx-auto max-w-6xl px-6">
-				<div className="rounded-2xl border border-border/40 bg-background/60 backdrop-blur-md supports-[backdrop-filter]:bg-background/40 px-6 py-12">
-					<div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-						{/* Logo */}
-						<div className="lg:col-span-1">
-							<Link
-								href="/"
-								className="flex items-center">
-								<Image src="/logo.png" alt="SalonHub" width={48} height={48} className="rounded-xl" />
-							</Link>
-						</div>
-
-						{/* Link columns */}
-						{footerLinks.map((group) => (
-							<div key={group.title}>
-								<h3 className="text-sm font-semibold">{group.title}</h3>
-								<ul className="mt-4 space-y-3">
-									{group.links.map((link) => (
-										<li key={link.label}>
-											<Link
-												href={link.href}
-												className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-												{link.label}
-											</Link>
-										</li>
-									))}
-								</ul>
-							</div>
-						))}
+		<footer id="contact" className="px-4 pb-6 sm:px-6">
+			<div className="mx-auto max-w-7xl rounded-[2rem] border border-border/70 bg-card/45 px-6 py-10 sm:px-10">
+				<div className="grid gap-12 border-b border-border/70 pb-12 md:grid-cols-2 lg:grid-cols-[1.25fr_0.75fr_1fr]">
+					<div>
+						<Link href="/" className="inline-flex items-center gap-3" aria-label="SalonHub home">
+							<span className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+								<Scissors className="size-4" />
+							</span>
+							<span className="text-lg font-semibold tracking-[-0.03em]">SalonHub</span>
+						</Link>
+						<p className="mt-5 max-w-sm text-sm leading-6 text-muted-foreground">
+							A more considered way to discover salons, meet talented professionals, and book beauty.
+						</p>
 					</div>
 
-					{/* Bottom bar */}
-					<div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border/40 pt-8 sm:flex-row">
-						<p className="text-sm text-muted-foreground">
-							© {new Date().getFullYear()} SalonHub
-						</p>
-						<div className="flex items-center gap-6 text-sm text-muted-foreground">
-							<ThemeToggle />
-						</div>
+					<div>
+						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Explore</p>
+						<ul className="mt-5 space-y-3">
+							{footerLinks.map((link) => (
+								<li key={link.href}>
+									<a href={link.href} className="text-sm transition-colors hover:text-gold">
+										{link.label}
+									</a>
+								</li>
+							))}
+						</ul>
+					</div>
+
+					<div>
+						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Say hello</p>
+						<ul className="mt-5 space-y-4 text-sm">
+							<li className="flex items-center gap-3"><Mail className="size-4 text-gold" /> hello@salonhub.com</li>
+							<li className="flex items-center gap-3"><MapPin className="size-4 text-gold" /> Find salons near you</li>
+							<li className="flex items-center gap-3"><AtSign className="size-4 text-gold" /> @salonhub</li>
+						</ul>
+					</div>
+				</div>
+
+				<div className="flex flex-col gap-4 pt-7 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+					<p>© {new Date().getFullYear()} SalonHub. Beauty, beautifully booked.</p>
+					<div className="flex items-center gap-5">
+						<Link href="/login" className="transition-colors hover:text-foreground">Sign in</Link>
+						<Link href="/register" className="transition-colors hover:text-foreground">Create account</Link>
+						<ThemeToggle />
 					</div>
 				</div>
 			</div>
