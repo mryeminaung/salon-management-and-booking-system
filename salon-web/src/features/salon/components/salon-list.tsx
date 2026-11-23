@@ -1,6 +1,26 @@
 "use client";
 
-import { PageHeader } from "@/components/page-header";
+import { useEffect, useMemo, useState } from "react";
+import {
+	Building2,
+	Check,
+	ChevronDown,
+	Eye,
+	EyeOff,
+	MapPin,
+	MoreHorizontal,
+	Pencil,
+	Phone,
+	Plus,
+	Search,
+	Scissors,
+	Star,
+	Trash2,
+	Users,
+} from "lucide-react";
+
+import { DataTable, DataTableToolbar, type DataTableColumn } from "@/components/data-table";
+import { KpiCard } from "@/components/kpi-card";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -11,41 +31,35 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import {
-	CheckIcon,
-	ChevronDownIcon,
-	PencilIcon,
-	PlusIcon,
-	SearchIcon,
-	StarIcon,
-	Trash2Icon,
-} from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+
 import { useSalonStore, type Salon } from "../hooks/use-salons";
 import { SalonForm } from "./salon-form";
+
+type StatusFilter = "all" | "published" | "hidden";
+
+function initials(name: string) {
+	return name
+		.split(" ")
+		.map((part) => part[0])
+		.join("")
+		.toUpperCase()
+		.slice(0, 2);
+}
 
 export function SalonList() {
 	const {
 		salons,
 		isLoading,
+		error,
 		fetchSalons,
 		createSalon,
 		updateSalon,
@@ -53,198 +67,255 @@ export function SalonList() {
 	} = useSalonStore();
 	const [showForm, setShowForm] = useState(false);
 	const [editingSalon, setEditingSalon] = useState<Salon | null>(null);
-	const [deleteId, setDeleteId] = useState<string | null>(null);
+	const [deleteSalonItem, setDeleteSalonItem] = useState<Salon | null>(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const [search, setSearch] = useState("");
-	const [statusFilter, setStatusFilter] = useState("all");
-
-	const statusOptions = [
-		{ value: "all", label: "All Status" },
-		{ value: "active", label: "Active" },
-		{ value: "inactive", label: "Inactive" },
-	];
-	const selectedStatus = statusOptions.find((o) => o.value === statusFilter);
+	const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
 	useEffect(() => {
-		fetchSalons();
+		void fetchSalons();
 	}, [fetchSalons]);
 
 	const filteredSalons = useMemo(() => {
+		const query = search.trim().toLowerCase();
 		return salons.filter((salon) => {
 			const matchesSearch =
-				search === "" ||
-				salon.name.toLowerCase().includes(search.toLowerCase()) ||
-				salon.phone?.toLowerCase().includes(search.toLowerCase()) ||
-				salon.address.toLowerCase().includes(search.toLowerCase());
+				!query ||
+				salon.name.toLowerCase().includes(query) ||
+				salon.phone.toLowerCase().includes(query) ||
+				salon.address.toLowerCase().includes(query) ||
+				salon.manager?.user.name.toLowerCase().includes(query);
 			const matchesStatus =
 				statusFilter === "all" ||
-				(statusFilter === "active" && salon.isPublished) ||
-				(statusFilter === "inactive" && !salon.isPublished);
+				(statusFilter === "published" && salon.isPublished) ||
+				(statusFilter === "hidden" && !salon.isPublished);
 			return matchesSearch && matchesStatus;
 		});
 	}, [salons, search, statusFilter]);
 
-	const handleEdit = (salon: Salon) => {
+	const publishedCount = salons.filter((salon) => salon.isPublished).length;
+	const totalStaff = salons.reduce((total, salon) => total + (salon._count?.staff ?? 0), 0);
+	const totalServices = salons.reduce((total, salon) => total + (salon._count?.services ?? 0), 0);
+
+	const openCreate = () => {
+		setEditingSalon(null);
+		setShowForm(true);
+	};
+
+	const openEdit = (salon: Salon) => {
 		setEditingSalon(salon);
 		setShowForm(true);
 	};
 
 	const handleDelete = async () => {
-		if (!deleteId) return;
-		await deleteSalon(deleteId);
-		setDeleteId(null);
+		if (!deleteSalonItem) return;
+		setIsDeleting(true);
+		try {
+			await deleteSalon(deleteSalonItem.id);
+			setDeleteSalonItem(null);
+		} finally {
+			setIsDeleting(false);
+		}
 	};
 
-	return (
-		<div className="space-y-4">
-			<PageHeader
-				title="Salons"
-				description="Manage your salons and their details."
-				action={
-					<Button
-						onClick={() => {
-							setEditingSalon(null);
-							setShowForm(true);
-						}}>
-						<PlusIcon className="size-4" /> Add Salon
-					</Button>
-				}
-			/>
-			<Separator />
+	const columns: DataTableColumn<Salon>[] = [
+		{
+			id: "salon",
+			header: "Salon",
+			cell: (salon) => (
+				<div className="flex min-w-64 items-center gap-3">
+					<span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-gold">
+						<Building2 className="size-5" />
+					</span>
+					<div className="min-w-0">
+						<p className="truncate font-semibold">{salon.name}</p>
+						<p className="mt-0.5 flex max-w-xs items-center gap-1 truncate text-xs text-muted-foreground">
+							<MapPin className="size-3 shrink-0" /> {salon.address}
+						</p>
+					</div>
+				</div>
+			),
+		},
+		{
+			id: "manager",
+			header: "Manager",
+			headerClassName: "hidden lg:table-cell",
+			className: "hidden lg:table-cell",
+			cell: (salon) =>
+				salon.manager?.user ? (
+					<div className="flex items-center gap-2.5">
+						<span className="flex size-8 items-center justify-center rounded-full bg-muted text-[11px] font-semibold">
+							{initials(salon.manager.user.name)}
+						</span>
+						<div>
+							<p className="text-sm font-medium">{salon.manager.user.name}</p>
+							<p className="text-xs text-muted-foreground">{salon.manager.user.email}</p>
+						</div>
+					</div>
+				) : (
+					<span className="text-sm text-muted-foreground">Not assigned</span>
+				),
+		},
+		{
+			id: "contact",
+			header: "Contact",
+			headerClassName: "hidden xl:table-cell",
+			className: "hidden xl:table-cell",
+			cell: (salon) => (
+				<span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+					<Phone className="size-3.5" /> {salon.phone}
+				</span>
+			),
+		},
+		{
+			id: "team",
+			header: "Team",
+			headerClassName: "hidden md:table-cell",
+			className: "hidden md:table-cell",
+			cell: (salon) => (
+				<div className="flex items-center gap-4 text-sm">
+					<span className="inline-flex items-center gap-1.5" title="Staff members">
+						<Users className="size-4 text-muted-foreground" /> {salon._count?.staff ?? 0}
+					</span>
+					<span className="inline-flex items-center gap-1.5" title="Services">
+						<Scissors className="size-4 text-muted-foreground" /> {salon._count?.services ?? 0}
+					</span>
+				</div>
+			),
+		},
+		{
+			id: "rating",
+			header: "Rating",
+			headerClassName: "hidden sm:table-cell",
+			className: "hidden sm:table-cell",
+			cell: (salon) => (
+				<span className="inline-flex items-center gap-1.5 font-medium tabular-nums">
+					<Star className="size-4 fill-gold text-gold" /> {salon.rating.toFixed(1)}
+				</span>
+			),
+		},
+		{
+			id: "status",
+			header: "Status",
+			cell: (salon) => (
+				<span
+					className={
+						salon.isPublished
+							? "inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400"
+							: "inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+					}>
+					<span className={salon.isPublished ? "size-1.5 rounded-full bg-emerald-500" : "size-1.5 rounded-full bg-muted-foreground"} />
+					{salon.isPublished ? "Published" : "Hidden"}
+				</span>
+			),
+		},
+		{
+			id: "actions",
+			header: <span className="sr-only">Actions</span>,
+			headerClassName: "w-16 text-right",
+			className: "w-16 text-right",
+			cell: (salon) => (
+				<DropdownMenu>
+					<DropdownMenuTrigger
+						render={
+							<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${salon.name}`}>
+								<MoreHorizontal className="size-4" />
+							</Button>
+						}
+					/>
+					<DropdownMenuContent align="end" className="w-44">
+						<DropdownMenuItem onClick={() => openEdit(salon)}>
+							<Pencil className="size-4" /> Edit salon
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={() => void updateSalon(salon.id, { isPublished: !salon.isPublished })}>
+							{salon.isPublished ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+							{salon.isPublished ? "Hide from booking" : "Publish salon"}
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem
+							onClick={() => setDeleteSalonItem(salon)}
+							className="text-destructive focus:text-destructive">
+							<Trash2 className="size-4" /> Delete salon
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			),
+		},
+	];
 
-			<div className="flex items-center gap-3">
-				<div className="relative flex-1 max-w-sm">
-					<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+	return (
+		<div className="space-y-7">
+			<div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+				<div>
+					<div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-gold">
+						<Building2 className="size-3.5" /> Salon portfolio
+					</div>
+					<h1 className="mt-3 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Salons</h1>
+					<p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+						Manage every location, monitor team capacity, and control which salons clients can book.
+					</p>
+				</div>
+				<Button size="lg" className="h-10 rounded-full px-4" onClick={openCreate}>
+					<Plus className="size-4" /> Add salon
+				</Button>
+			</div>
+
+			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+				<KpiCard icon={Building2} title="Total salons" value={salons.length} description="Locations in your portfolio" />
+				<KpiCard icon={Eye} title="Published" value={publishedCount} description="Visible to customers" />
+				<KpiCard icon={Users} title="Total staff" value={totalStaff} description="Across every salon" />
+				<KpiCard icon={Scissors} title="Total services" value={totalServices} description="Available menu items" />
+			</div>
+
+			<DataTableToolbar>
+				<div className="relative min-w-0 flex-1">
+					<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 					<Input
-						placeholder="Search salons..."
 						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						className="pl-9"
+						onChange={(event) => setSearch(event.target.value)}
+						placeholder="Search salons, locations, phones, or managers…"
+						className="h-10 rounded-xl border-0 bg-background pl-9 shadow-none ring-1 ring-border/70"
 					/>
 				</div>
 				<DropdownMenu>
 					<DropdownMenuTrigger
 						render={
-							<button className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5! text-sm font-medium hover:bg-muted shrink-0 hover:cursor-pointer" />
+							<button className="inline-flex h-10 items-center justify-between gap-3 rounded-xl bg-background px-3 text-sm font-medium ring-1 ring-border/70 transition-colors hover:bg-muted sm:min-w-40" />
 						}>
-						{selectedStatus?.label || "All Status"}
-						<ChevronDownIcon className="size-4 text-muted-foreground" />
+						{statusFilter === "all" ? "Any status" : statusFilter === "published" ? "Published" : "Hidden"}
+						<ChevronDown className="size-4 text-muted-foreground" />
 					</DropdownMenuTrigger>
-					<DropdownMenuContent
-						align="start"
-						className="w-48">
-						{statusOptions.map((option) => (
-							<DropdownMenuItem
-								key={option.value}
-								onClick={() => setStatusFilter(option.value)}
-								className="flex items-center gap-2">
-								<span className="w-4">
-									{statusFilter === option.value && (
-										<CheckIcon className="size-4" />
-									)}
-								</span>
-								{option.label}
+					<DropdownMenuContent align="end" className="w-44">
+						{(["all", "published", "hidden"] as const).map((value) => (
+							<DropdownMenuItem key={value} onClick={() => setStatusFilter(value)}>
+								<span className="w-4">{statusFilter === value && <Check className="size-4" />}</span>
+								<span className="capitalize">{value === "all" ? "Any status" : value}</span>
 							</DropdownMenuItem>
 						))}
 					</DropdownMenuContent>
 				</DropdownMenu>
-			</div>
+			</DataTableToolbar>
 
-			{isLoading ? (
-				<p className="text-muted-foreground">Loading...</p>
-			) : filteredSalons.length === 0 ? (
-				<p className="text-muted-foreground">
-					{salons.length === 0
-						? "No salons yet. Create your first salon!"
-						: "No salons match your search."}
+			{error && (
+				<p className="rounded-xl border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive">
+					{error}
 				</p>
-			) : (
-				<div className="rounded-lg border border-border">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Salon</TableHead>
-								<TableHead>Manager</TableHead>
-								<TableHead>Phone</TableHead>
-								<TableHead>Staff</TableHead>
-								<TableHead>Services</TableHead>
-								<TableHead>Rating</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead className="w-[100px]">Actions</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredSalons.map((salon) => (
-								<TableRow key={salon.id}>
-									<TableCell className="font-medium">{salon.name}</TableCell>
-									<TableCell>
-										{salon.manager?.user ? (
-											<div className="flex items-center gap-3">
-												<Avatar className="size-8">
-													<AvatarImage
-														src={
-															(salon.manager.user as any).avatar ||
-															"/avatars/user-1.webp"
-														}
-														alt={salon.manager.user.name}
-													/>
-													<AvatarFallback className="text-xs">
-														{salon.manager.user.name
-															.split(" ")
-															.map((n: string) => n[0])
-															.join("")
-															.toUpperCase()}
-													</AvatarFallback>
-												</Avatar>
-												<div className="grid gap-0.5">
-													<span className="font-medium leading-none">
-														{salon.manager.user.name}
-													</span>
-													<span className="text-xs text-muted-foreground">
-														{salon.manager.user.email}
-													</span>
-												</div>
-											</div>
-										) : (
-											<span className="text-muted-foreground">—</span>
-										)}
-									</TableCell>
-									<TableCell>{salon.phone || "—"}</TableCell>
-									<TableCell>{salon._count?.staff ?? 0}</TableCell>
-									<TableCell>{salon._count?.services ?? 0}</TableCell>
-									<TableCell>
-										<div className="flex items-center gap-1">
-											<StarIcon className="size-4 fill-yellow-400 text-yellow-400" />
-											<span>{salon.rating.toFixed(1)}</span>
-										</div>
-									</TableCell>
-									<TableCell>
-										<span
-											className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${salon.isPublished ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
-											{salon.isPublished ? "Active" : "Inactive"}
-										</span>
-									</TableCell>
-									<TableCell>
-										<div className="flex gap-1">
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												onClick={() => handleEdit(salon)}>
-												<PencilIcon className="size-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												onClick={() => setDeleteId(salon.id)}>
-												<Trash2Icon className="size-4 text-destructive" />
-											</Button>
-										</div>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
 			)}
+
+			<DataTable
+				columns={columns}
+				data={filteredSalons}
+				getRowKey={(salon) => salon.id}
+				ariaLabel="Salon portfolio"
+				isLoading={isLoading}
+				emptyTitle={salons.length === 0 ? "Create your first salon" : "No matching salons"}
+				emptyDescription={
+					salons.length === 0
+						? "Add a location to start assigning managers, staff, and services."
+						: "Try changing your search or status filter."
+				}
+			/>
 
 			<SalonForm
 				open={showForm}
@@ -261,24 +332,21 @@ export function SalonList() {
 			/>
 
 			<AlertDialog
-				open={deleteId !== null}
+				open={deleteSalonItem !== null}
 				onOpenChange={(open) => {
-					if (!open) setDeleteId(null);
+					if (!open) setDeleteSalonItem(null);
 				}}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete Salon</AlertDialogTitle>
+						<AlertDialogTitle>Delete {deleteSalonItem?.name}?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Are you sure you want to delete this salon? This action cannot be
-							undone.
+							This permanently removes the salon and disconnects its assigned resources. This action cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							variant="destructive"
-							onClick={handleDelete}>
-							Delete
+						<AlertDialogCancel>Keep salon</AlertDialogCancel>
+						<AlertDialogAction variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+							{isDeleting ? "Deleting…" : "Delete salon"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
