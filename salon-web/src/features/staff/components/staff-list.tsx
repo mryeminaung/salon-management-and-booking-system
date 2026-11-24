@@ -1,5 +1,20 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+import {
+	BriefcaseBusiness,
+	Building2,
+	Check,
+	ChevronDown,
+	Link2,
+	MoreHorizontal,
+	Pencil,
+	Phone,
+	Search,
+	Trash2,
+} from "lucide-react";
+
+import { DataTable, DataTableToolbar, type DataTableColumn } from "@/components/data-table";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -15,26 +30,11 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import {
-	CheckIcon,
-	ChevronDownIcon,
-	LinkIcon,
-	PencilIcon,
-	SearchIcon,
-	Trash2Icon,
-} from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+
 import { useStaffStore, type Staff } from "../hooks/use-staff";
 import { StaffAssignDialog } from "./staff-assign-dialog";
 
@@ -53,223 +53,147 @@ interface StaffListAdminProps {
 }
 
 type StaffListProps = StaffListSalonProps | StaffListAdminProps;
+type AssignmentFilter = "all" | "assigned" | "unassigned";
 
 function isAdminProps(props: StaffListProps): props is StaffListAdminProps {
 	return "selectedSalonId" in props;
 }
 
+function initials(name: string) {
+	return name.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2);
+}
+
 export function StaffList(props: StaffListProps) {
-	const {
-		staff: storeStaff,
-		isLoading,
-		fetchSalonStaff,
-		removeStaff,
-	} = useStaffStore();
-	const [deleteId, setDeleteId] = useState<string | null>(null);
-	const [assignStaffId, setAssignStaffId] = useState<string | null>(null);
+	const adminMode = isAdminProps(props);
+	const { staff: storeStaff, isLoading, error, fetchSalonStaff, removeStaff } = useStaffStore();
+	const [deleteStaff, setDeleteStaff] = useState<Staff | null>(null);
+	const [assignStaff, setAssignStaff] = useState<Staff | null>(null);
+	const [isDeleting, setIsDeleting] = useState(false);
 	const [search, setSearch] = useState("");
+	const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>("all");
+	const [specialtyFilter, setSpecialtyFilter] = useState("all");
 
-	// Manager mode: fetch salon-specific staff
-	const salonId = !isAdminProps(props) ? props.salonId : undefined;
+	const salonId = adminMode ? undefined : props.salonId;
 	useEffect(() => {
-		if (salonId) fetchSalonStaff(salonId);
-	}, [salonId, fetchSalonStaff]);
+		if (salonId) void fetchSalonStaff(salonId);
+	}, [fetchSalonStaff, salonId]);
 
-	// Determine which staff to display
-	let displayStaff: Staff[];
-	if (isAdminProps(props)) {
-		const { selectedSalonId, allStaff } = props;
-		displayStaff = selectedSalonId
-			? allStaff.filter((s) => s.salonId === selectedSalonId)
-			: allStaff;
-	} else {
-		displayStaff = storeStaff;
-	}
-
+	const displayStaff = adminMode
+		? props.selectedSalonId
+			? props.allStaff.filter((staff) => staff.salonId === props.selectedSalonId)
+			: props.allStaff
+		: storeStaff;
+	const specialties = useMemo(() => Array.from(new Set((adminMode ? props.allStaff : storeStaff).map((staff) => staff.specialty).filter((value): value is string => Boolean(value)))).sort(), [adminMode, props, storeStaff]);
 	const filteredStaff = useMemo(() => {
-		return displayStaff.filter((s) => {
-			return (
-				search === "" ||
-				s.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
-				s.user?.email?.toLowerCase().includes(search.toLowerCase()) ||
-				s.user?.phone?.toLowerCase().includes(search.toLowerCase()) ||
-				s.specialty?.toLowerCase().includes(search.toLowerCase()) ||
-				s.salon?.name?.toLowerCase().includes(search.toLowerCase())
-			);
+		const query = search.trim().toLowerCase();
+		return displayStaff.filter((staff) => {
+			const matchesSearch = !query || staff.user?.name?.toLowerCase().includes(query) || staff.user?.email?.toLowerCase().includes(query) || staff.user?.phone?.toLowerCase().includes(query) || staff.specialty?.toLowerCase().includes(query) || staff.salon?.name?.toLowerCase().includes(query);
+			const matchesAssignment = assignmentFilter === "all" || (assignmentFilter === "assigned" && Boolean(staff.salonId)) || (assignmentFilter === "unassigned" && !staff.salonId);
+			const matchesSpecialty = specialtyFilter === "all" || staff.specialty === specialtyFilter;
+			return matchesSearch && matchesAssignment && matchesSpecialty;
 		});
-	}, [displayStaff, search]);
+	}, [assignmentFilter, displayStaff, search, specialtyFilter]);
 
 	const handleDelete = async () => {
-		if (!deleteId) return;
-		await removeStaff(deleteId);
-		setDeleteId(null);
-	};
-
-	const handleRefresh = () => {
-		if (isAdminProps(props)) {
-			props.onRefresh();
-		} else if (salonId) {
-			fetchSalonStaff(salonId);
+		if (!deleteStaff) return;
+		setIsDeleting(true);
+		try {
+			await removeStaff(deleteStaff.id);
+			setDeleteStaff(null);
+			if (adminMode) props.onRefresh();
+			else if (salonId) void fetchSalonStaff(salonId);
+		} finally {
+			setIsDeleting(false);
 		}
 	};
 
-	const selectedSalonName = isAdminProps(props)
-		? (props.salons.find((s) => s.id === props.selectedSalonId)?.name ??
-			"All Salons")
-		: "";
+	const columns: DataTableColumn<Staff>[] = [
+		{
+			id: "staff",
+			header: "Staff Member",
+			cell: (staff) => (
+				<div className="flex min-w-56 items-center gap-3">
+					<span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-gold">{initials(staff.user?.name || "Staff")}</span>
+					<div className="min-w-0"><p className="truncate font-semibold">{staff.user?.name || "Unnamed staff"}</p><p className="truncate text-xs text-muted-foreground">{staff.user?.email || "No email"}</p></div>
+				</div>
+			),
+		},
+		{
+			id: "specialty",
+			header: "Specialty",
+			cell: (staff) => staff.specialty ? <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-gold"><BriefcaseBusiness className="size-3.5" /> {staff.specialty}</span> : <span className="text-sm text-muted-foreground">General</span>,
+		},
+		{
+			id: "contact",
+			header: "Contact",
+			headerClassName: "hidden lg:table-cell",
+			className: "hidden lg:table-cell",
+			cell: (staff) => <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><Phone className="size-3.5" /> {staff.user?.phone || "Not provided"}</span>,
+		},
+		...(adminMode ? [{
+			id: "salon",
+			header: "Assigned Salon",
+			headerClassName: "hidden md:table-cell",
+			className: "hidden md:table-cell",
+			cell: (staff: Staff) => staff.salon ? <span className="inline-flex items-center gap-2 text-sm font-medium"><Building2 className="size-4 text-gold" /> {staff.salon.name}</span> : <span className="text-sm text-muted-foreground">Not assigned</span>,
+		}] : []),
+		{
+			id: "joined",
+			header: "Joined",
+			headerClassName: "hidden xl:table-cell",
+			className: "hidden xl:table-cell text-sm text-muted-foreground",
+			cell: (staff) => new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(staff.createdAt)),
+		},
+		{
+			id: "actions",
+			header: <span className="sr-only">Actions</span>,
+			headerClassName: "w-16 text-right",
+			className: "w-16 text-right",
+			cell: (staff) => (
+				<DropdownMenu>
+					<DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${staff.user?.name}`} />}><MoreHorizontal className="size-4" /></DropdownMenuTrigger>
+					<DropdownMenuContent align="end" className="w-48">
+						<DropdownMenuItem onClick={() => props.onEdit(staff)}><Pencil className="size-4" /> Edit staff</DropdownMenuItem>
+						{adminMode && <DropdownMenuItem disabled={Boolean(staff.salonId)} onClick={() => setAssignStaff(staff)}><Link2 className="size-4" /> {staff.salonId ? "Already assigned" : "Assign to salon"}</DropdownMenuItem>}
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onClick={() => setDeleteStaff(staff)} className="text-destructive focus:text-destructive"><Trash2 className="size-4" /> Delete staff</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			),
+		},
+	];
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center gap-3">
-				<div className="relative flex-1 max-w-sm">
-					<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-					<Input
-						placeholder="Search staff..."
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						className="pl-9"
-					/>
+			<DataTableToolbar>
+				<div className="relative min-w-0 flex-1">
+					<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+					<Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search staff, specialties, or salons…" className="h-10 rounded-xl border-0 bg-background pl-9 shadow-none ring-1 ring-border/70" />
 				</div>
-				{isAdminProps(props) && (
-					<DropdownMenu>
-						<DropdownMenuTrigger
-							render={
-								<button className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium hover:bg-muted shrink-0 hover:cursor-pointer" />
-							}>
-							{selectedSalonName}
-							<ChevronDownIcon className="size-4 text-muted-foreground" />
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="start"
-							className="w-48">
-							<DropdownMenuItem
-								onClick={() => props.onSalonChange(null)}
-								className="flex items-center gap-2">
-								<span className="w-4">
-									{props.selectedSalonId === null && (
-										<CheckIcon className="size-4" />
-									)}
-								</span>
-								All Salons
-							</DropdownMenuItem>
-							{props.salons.map((s) => (
-								<DropdownMenuItem
-									key={s.id}
-									onClick={() => props.onSalonChange(s.id)}
-									className="flex items-center gap-2">
-									<span className="w-4">
-										{props.selectedSalonId === s.id && (
-											<CheckIcon className="size-4" />
-										)}
-									</span>
-									{s.name}
-								</DropdownMenuItem>
-							))}
-						</DropdownMenuContent>
-					</DropdownMenu>
+				{adminMode && (
+					<>
+						<DropdownMenu>
+							<DropdownMenuTrigger render={<button className="inline-flex h-10 items-center justify-between gap-3 rounded-xl bg-background px-3 text-sm font-medium ring-1 ring-border/70 transition-colors hover:bg-muted sm:min-w-40" />}><span className="max-w-28 truncate">{props.selectedSalonId ? props.salons.find((salon) => salon.id === props.selectedSalonId)?.name : "All salons"}</span><ChevronDown className="size-4 text-muted-foreground" /></DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="w-52"><DropdownMenuItem onClick={() => props.onSalonChange(null)}><span className="w-4">{props.selectedSalonId === null && <Check className="size-4" />}</span>All salons</DropdownMenuItem>{props.salons.map((salon) => <DropdownMenuItem key={salon.id} onClick={() => props.onSalonChange(salon.id)}><span className="w-4">{props.selectedSalonId === salon.id && <Check className="size-4" />}</span>{salon.name}</DropdownMenuItem>)}</DropdownMenuContent>
+						</DropdownMenu>
+						<DropdownMenu>
+							<DropdownMenuTrigger render={<button className="inline-flex h-10 items-center justify-between gap-3 rounded-xl bg-background px-3 text-sm font-medium ring-1 ring-border/70 transition-colors hover:bg-muted sm:min-w-40" />}>{assignmentFilter === "all" ? "Any assignment" : assignmentFilter === "assigned" ? "Assigned" : "Unassigned"}<ChevronDown className="size-4 text-muted-foreground" /></DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="w-44">{(["all", "assigned", "unassigned"] as const).map((value) => <DropdownMenuItem key={value} onClick={() => setAssignmentFilter(value)}><span className="w-4">{assignmentFilter === value && <Check className="size-4" />}</span>{value === "all" ? "Any assignment" : value === "assigned" ? "Assigned" : "Unassigned"}</DropdownMenuItem>)}</DropdownMenuContent>
+						</DropdownMenu>
+						<DropdownMenu>
+							<DropdownMenuTrigger render={<button className="inline-flex h-10 items-center justify-between gap-3 rounded-xl bg-background px-3 text-sm font-medium ring-1 ring-border/70 transition-colors hover:bg-muted sm:min-w-40" />}><span className="max-w-28 truncate">{specialtyFilter === "all" ? "All specialties" : specialtyFilter}</span><ChevronDown className="size-4 text-muted-foreground" /></DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="w-52"><DropdownMenuItem onClick={() => setSpecialtyFilter("all")}><span className="w-4">{specialtyFilter === "all" && <Check className="size-4" />}</span>All specialties</DropdownMenuItem>{specialties.map((specialty) => <DropdownMenuItem key={specialty} onClick={() => setSpecialtyFilter(specialty)}><span className="w-4">{specialtyFilter === specialty && <Check className="size-4" />}</span>{specialty}</DropdownMenuItem>)}</DropdownMenuContent>
+						</DropdownMenu>
+					</>
 				)}
-			</div>
+			</DataTableToolbar>
 
-			{isLoading ? (
-				<p className="text-muted-foreground">Loading...</p>
-			) : filteredStaff.length === 0 ? (
-				<p className="text-muted-foreground">
-					{displayStaff.length === 0
-						? "No staff members yet."
-						: "No staff match your search."}
-				</p>
-			) : (
-				<div className="rounded-lg border border-border">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Name</TableHead>
-								<TableHead>Email</TableHead>
-								<TableHead>Phone</TableHead>
-								<TableHead>Specialty</TableHead>
-								{isAdminProps(props) && <TableHead>Assigned Salon</TableHead>}
-								<TableHead className="w-[100px]">Actions</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredStaff.map((s) => (
-								<TableRow key={s.id}>
-									<TableCell className="font-medium">
-										{s.user?.name || "—"}
-									</TableCell>
-									<TableCell>{s.user?.email || "—"}</TableCell>
-									<TableCell>{s.user?.phone || "—"}</TableCell>
-									<TableCell>{s.specialty || "—"}</TableCell>
-									{isAdminProps(props) && (
-										<TableCell>{s.salon?.name || "Unassigned"}</TableCell>
-									)}
-									<TableCell>
-										<div className="flex gap-1">
-											{isAdminProps(props) && !s.salonId && (
-												<Button
-													variant="ghost"
-													size="icon-sm"
-													title="Assign to salon"
-													onClick={() => setAssignStaffId(s.id)}>
-													<LinkIcon className="size-4" />
-												</Button>
-											)}
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												onClick={() => props.onEdit(s)}>
-												<PencilIcon className="size-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												onClick={() => setDeleteId(s.id)}>
-												<Trash2Icon className="size-4 text-destructive" />
-											</Button>
-										</div>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
-			)}
+			{error && <p className="rounded-xl border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive">{error}</p>}
+			<DataTable columns={columns} data={filteredStaff} getRowKey={(staff) => staff.id} ariaLabel="Staff directory" isLoading={isLoading} emptyTitle={displayStaff.length === 0 ? "No staff members yet" : "No matching staff"} emptyDescription={displayStaff.length === 0 ? "Add a staff account to begin building your service team." : "Try changing your search or filters."} />
 
-			{isAdminProps(props) && (
-				<StaffAssignDialog
-					staffId={assignStaffId}
-					onOpenChange={(open) => {
-						if (!open) setAssignStaffId(null);
-					}}
-					onAssigned={() => {
-						setAssignStaffId(null);
-						props.onRefresh();
-					}}
-				/>
-			)}
-
-			<AlertDialog
-				open={deleteId !== null}
-				onOpenChange={(open) => {
-					if (!open) setDeleteId(null);
-				}}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
-						<AlertDialogDescription>
-							Are you sure you want to remove this staff member? This action
-							cannot be undone.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							variant="destructive"
-							onClick={handleDelete}>
-							Remove
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
+			{adminMode && <StaffAssignDialog staffId={assignStaff?.id ?? null} staffName={assignStaff?.user?.name} onOpenChange={(open) => { if (!open) setAssignStaff(null); }} onAssigned={() => { setAssignStaff(null); props.onRefresh(); }} />}
+			<AlertDialog open={deleteStaff !== null} onOpenChange={(open) => { if (!open) setDeleteStaff(null); }}>
+				<AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete {deleteStaff?.user?.name}?</AlertDialogTitle><AlertDialogDescription>This permanently removes the staff account, salon assignment, and login credentials. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Keep staff</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={handleDelete} disabled={isDeleting}>{isDeleting ? "Deleting…" : "Delete staff"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
 			</AlertDialog>
 		</div>
 	);

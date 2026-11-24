@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api from "@/lib/axios";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 export interface Manager {
   id: string;
@@ -21,7 +22,7 @@ interface ManagerState {
   deleteManager: (managerId: string) => Promise<void>;
 }
 
-export const useManagerStore = create<ManagerState>((set) => ({
+export const useManagerStore = create<ManagerState>((set, get) => ({
   managers: [],
   isLoading: false,
   error: null,
@@ -31,27 +32,24 @@ export const useManagerStore = create<ManagerState>((set) => ({
     try {
       const res = await api.get("/api/managers");
       set({ managers: res.data.data, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.response?.data?.error || "Failed to fetch managers", isLoading: false });
+    } catch (error) {
+      set({ error: getErrorMessage(error, "Failed to fetch managers"), isLoading: false });
     }
   },
 
   createManager: async (data) => {
-    const res = await api.post("/api/managers", data);
-    set((s) => ({ managers: [res.data.data, ...s.managers] }));
+    await api.post("/api/managers", data);
+    await get().fetchManagers();
   },
 
   updateManager: async (managerId, data) => {
-    const res = await api.put(`/api/managers/${managerId}`, data);
-    set((s) => ({
-      managers: s.managers.map((m) =>
-        m.id === managerId ? { ...m, ...res.data.data } : m,
-      ),
-    }));
+    await api.put(`/api/managers/${managerId}`, data);
+    await get().fetchManagers();
   },
 
   assignManager: async (managerId, salonId) => {
     await api.put(`/api/managers/${managerId}/assign`, { salonId });
+    await get().fetchManagers();
   },
 
   deleteManager: async (managerId) => {

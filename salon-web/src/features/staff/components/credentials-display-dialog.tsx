@@ -1,145 +1,60 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { EyeIcon, EyeOffIcon, CopyIcon, CheckIcon } from "lucide-react";
+import { Check, CheckCircle2, Copy, Eye, EyeOff, KeyRound, Mail, ShieldAlert, UserRound } from "lucide-react";
 
-interface CredentialsDisplayDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  credentials: {
-    name: string;
-    email: string;
-    password: string;
-  } | null;
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+interface Credentials {
+	name: string;
+	email: string;
+	password: string;
 }
 
-export function CredentialsDisplayDialog({
-  open,
-  onOpenChange,
-  credentials,
-}: CredentialsDisplayDialogProps) {
-  const [showPassword, setShowPassword] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [copiedPassword, setCopiedPassword] = useState(false);
+interface CredentialsDisplayDialogProps {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	credentials: Credentials | null;
+}
 
-  if (!credentials) return null;
+function CredentialsContent({ credentials, onOpenChange }: { credentials: Credentials; onOpenChange: (open: boolean) => void }) {
+	const [showPassword, setShowPassword] = useState(false);
+	const [copied, setCopied] = useState<"all" | "password" | null>(null);
+	const [copyError, setCopyError] = useState("");
+	const credentialsText = `New account created\nName: ${credentials.name}\nEmail: ${credentials.email}\nPassword: ${credentials.password}\n\nSave this password now. It will not be shown again.`;
 
-  const credentialsText = `New Account Created
-Name: ${credentials.name}
-Email: ${credentials.email}
-Password: ${credentials.password}
+	const copyText = async (text: string, target: "all" | "password") => {
+		try {
+			await navigator.clipboard.writeText(text);
+			setCopied(target);
+			setCopyError("");
+			window.setTimeout(() => setCopied(null), 2000);
+		} catch {
+			setCopyError("Clipboard access was blocked. Select and copy the credentials manually.");
+		}
+	};
 
-Please save this password. It will not be shown again.`;
+	return (
+		<DialogContent className="overflow-hidden p-0 sm:max-w-md [&_[data-slot=dialog-close]]:right-4 [&_[data-slot=dialog-close]]:top-4">
+			<DialogHeader className="border-b border-border/70 px-6 py-4 pr-14 text-left">
+				<div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600"><CheckCircle2 className="size-5" /></span><div className="pt-0.5"><DialogTitle className="text-lg font-semibold leading-6">Account created</DialogTitle><DialogDescription className="mt-1 leading-5">Save these login credentials before closing this window.</DialogDescription></div></div>
+			</DialogHeader>
+			<div className="space-y-4 px-6 py-5">
+				<div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 p-3 text-sm"><ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600" /><p><span className="font-semibold">One-time password.</span> For security, it will not be available again after you close this dialog.</p></div>
+				<div className="overflow-hidden rounded-xl border border-border/70">
+					<div className="flex items-center gap-3 border-b border-border/60 px-3 py-3"><UserRound className="size-4 text-gold" /><div className="min-w-0"><p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Name</p><p className="truncate text-sm font-semibold">{credentials.name}</p></div></div>
+					<div className="flex items-center gap-3 border-b border-border/60 px-3 py-3"><Mail className="size-4 text-gold" /><div className="min-w-0"><p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Email</p><p className="truncate text-sm font-semibold">{credentials.email}</p></div></div>
+					<div className="flex items-center gap-3 px-3 py-3"><KeyRound className="size-4 shrink-0 text-gold" /><div className="min-w-0 flex-1"><p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Temporary password</p><code className="block truncate text-sm font-semibold tracking-wide">{showPassword ? credentials.password : "••••••••••"}</code></div><Button type="button" variant="ghost" size="icon-sm" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</Button><Button type="button" variant="ghost" size="icon-sm" onClick={() => void copyText(credentials.password, "password")} aria-label="Copy password">{copied === "password" ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}</Button></div>
+				</div>
+				{copyError && <p className="text-xs text-destructive">{copyError}</p>}
+				<Button type="button" variant="outline" className="h-10 w-full rounded-xl" onClick={() => void copyText(credentialsText, "all")}>{copied === "all" ? <><Check className="size-4 text-emerald-600" /> Copied credentials</> : <><Copy className="size-4" /> Copy all credentials</>}</Button>
+			</div>
+			<DialogFooter className="mx-0 mb-0 rounded-none border-t border-border/70 bg-muted/20 px-6 py-3"><Button type="button" onClick={() => onOpenChange(false)} className="h-10 rounded-xl px-5 sm:min-w-28">Done</Button></DialogFooter>
+		</DialogContent>
+	);
+}
 
-  const handleCopyAll = async () => {
-    try {
-      await navigator.clipboard.writeText(credentialsText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy:", err);
-    }
-  };
-
-  const handleCopyPassword = async () => {
-    try {
-      await navigator.clipboard.writeText(credentials.password);
-      setCopiedPassword(true);
-      setTimeout(() => setCopiedPassword(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy password:", err);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="text-green-600">✓ Account Created Successfully</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-3">
-            <p className="text-sm text-yellow-800 font-medium">
-              Save these credentials now. This password will not be shown again.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Name</label>
-              <p className="text-sm">{credentials.name}</p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Email</label>
-              <p className="text-sm">{credentials.email}</p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Password</label>
-              <div className="flex items-center gap-2 mt-1">
-                <code className="flex-1 bg-muted px-2 py-1 rounded text-sm font-mono">
-                  {showPassword ? credentials.password : "••••••••"}
-                </code>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  onClick={() => setShowPassword(!showPassword)}
-                  title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOffIcon className="size-4" />
-                  ) : (
-                    <EyeIcon className="size-4" />
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  onClick={handleCopyPassword}
-                  title="Copy password"
-                >
-                  {copiedPassword ? (
-                    <CheckIcon className="size-4 text-green-600" />
-                  ) : (
-                    <CopyIcon className="size-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleCopyAll}
-          >
-            {copied ? (
-              <>
-                <CheckIcon className="size-4 mr-2" />
-                Copied to Clipboard
-              </>
-            ) : (
-              <>
-                <CopyIcon className="size-4 mr-2" />
-                Copy All Credentials
-              </>
-            )}
-          </Button>
-        </div>
-
-        <DialogFooter>
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            Done
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+export function CredentialsDisplayDialog({ open, onOpenChange, credentials }: CredentialsDisplayDialogProps) {
+	return <Dialog open={open} onOpenChange={onOpenChange}>{credentials && <CredentialsContent key={`${credentials.email}-${credentials.password}`} credentials={credentials} onOpenChange={onOpenChange} />}</Dialog>;
 }

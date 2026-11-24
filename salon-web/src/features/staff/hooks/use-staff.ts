@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import api from "@/lib/axios";
+import { getErrorMessage } from "@/lib/get-error-message";
 
 export interface Staff {
   id: string;
@@ -23,7 +24,7 @@ interface StaffState {
   removeStaff: (id: string) => Promise<void>;
 }
 
-export const useStaffStore = create<StaffState>((set) => ({
+export const useStaffStore = create<StaffState>((set, get) => ({
   staff: [],
   isLoading: false,
   error: null,
@@ -33,8 +34,8 @@ export const useStaffStore = create<StaffState>((set) => ({
     try {
       const res = await api.get("/api/staff");
       set({ staff: res.data.data, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.response?.data?.error || "Failed to fetch staff", isLoading: false });
+    } catch (error) {
+      set({ error: getErrorMessage(error, "Failed to fetch staff"), isLoading: false });
     }
   },
 
@@ -43,25 +44,24 @@ export const useStaffStore = create<StaffState>((set) => ({
     try {
       const res = await api.get(`/api/salons/${salonId}/staff`);
       set({ staff: res.data.data, isLoading: false });
-    } catch (err: any) {
-      set({ error: err.response?.data?.error || "Failed to fetch staff", isLoading: false });
+    } catch (error) {
+      set({ error: getErrorMessage(error, "Failed to fetch staff"), isLoading: false });
     }
   },
 
   addStaff: async (data) => {
-    const res = await api.post("/api/staff", data);
-    set((s) => ({ staff: [res.data.data, ...s.staff] }));
+    await api.post("/api/staff", data);
+    await get().fetchAllStaff();
   },
 
   assignStaff: async (staffId, salonId) => {
     await api.put(`/api/staff/${staffId}/assign`, { salonId });
+    await get().fetchAllStaff();
   },
 
   updateStaff: async (id, data) => {
-    const res = await api.put(`/api/staff/${id}`, data);
-    set((s) => ({
-      staff: s.staff.map((st) => (st.id === id ? { ...st, ...res.data.data } : st)),
-    }));
+    await api.put(`/api/staff/${id}`, data);
+    await get().fetchAllStaff();
   },
 
   removeStaff: async (id) => {

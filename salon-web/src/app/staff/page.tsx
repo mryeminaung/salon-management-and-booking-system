@@ -67,8 +67,8 @@ export default function StaffPage() {
 					staff={editingStaff}
 					onSubmit={
 						editingStaff
-							? (data) => updateStaff(editingStaff.id, data)
-							: (data) => addStaff(data)
+							? (data) => updateStaff(editingStaff.id, { name: data.name, phone: data.phone, specialty: data.specialty || undefined })
+							: (data) => addStaff({ name: data.name, email: data.email, password: data.password, phone: data.phone, specialty: data.specialty || undefined })
 					}
 				/>
 			</RoleGuard>
