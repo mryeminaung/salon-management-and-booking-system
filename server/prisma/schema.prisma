@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum Role {
+  owner    @map("owner")
+  manager  @map("manager")
+  staff    @map("staff")
+  customer @map("customer")
+}
+
+enum AppointmentStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
+// ─── User ─────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique
+  password      String
+  name          String
+  phone         String
+  role          Role
+  avatar        String?
+  address       String?
+  dateOfBirth   DateTime?
+  emailVerified Boolean   @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // One-to-one optional relations (only one will be non-null per user)
+  owner    Owner?
+  manager  Manager?
+  staff    Staff?
+  customer Customer?
+}
+
+// ─── Owner ────────────────────────────────────────────────
+
+model Owner {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salons Salon[]
+}
+
+// ─── Salon ────────────────────────────────────────────────
+
+model Salon {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  slug          String    @unique
+  address       String
+  phone         String
+  description   String
+  logo          String?
+  coverImage    String?
+  openingHours  Json?     // {"monday": "9:00-18:00", "tuesday": "9:00-18:00", ...}
+  rating        Float     @default(0)
+  isPublished   Boolean   @default(true)
+  ownerId       String    @db.Uuid
+  managerId     String?   @unique @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  owner    Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  manager  Manager?  @relation("ManagerSalon", fields: [managerId], references: [id], onDelete: SetNull)
+  staff    Staff[]
+  services Service[]
+  appointments Appointment[]
+
+  @@index([ownerId])
+  @@index([slug])
+}
+
+// ─── Manager ──────────────────────────────────────────────
+
+model Manager {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  salonId   String?  @unique @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salon Salon? @relation("ManagerSalon")
+}
+
+// ─── Staff ────────────────────────────────────────────────
+
+model Staff {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @unique @db.Uuid
+  salonId     String?   @db.Uuid
+  specialty   String?
+  bio         String?
+  avatar      String?
+  isActive    Boolean   @default(true)
+  joinedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salon Salon? @relation(fields: [salonId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+
+  @@index([salonId])
+}
+
+// ─── Service ──────────────────────────────────────────────
+
+model Service {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String    @unique
+  description String?
+  price       Decimal   @db.Decimal(10, 2)
+  duration    Int       // minutes
+  image       String?
+  category    String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  salonId     String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  salon Salon? @relation(fields: [salonId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+
+  @@index([salonId])
+  @@index([slug])
+  @@index([category])
+}
+
+// ─── Customer ─────────────────────────────────────────────
+
+model Customer {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @unique @db.Uuid
+  notes        String?
+  loyaltyPoints Int      @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+}
+
+model Appointment {
+  id          String            @id @default(uuid()) @db.Uuid
+  customerId  String            @db.Uuid
+  salonId     String?           @db.Uuid
+  serviceId   String?           @db.Uuid
+  staffId     String?           @db.Uuid
+  salonName   String
+  serviceName String
+  staffName   String
+  price       Decimal           @db.Decimal(10, 2)
+  startAt     DateTime
+  endAt       DateTime
+  status      AppointmentStatus @default(pending)
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  salon    Salon?   @relation(fields: [salonId], references: [id], onDelete: SetNull)
+  service  Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  staff    Staff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, startAt])
+  @@index([salonId, startAt])
+  @@index([staffId, startAt, endAt])
+}

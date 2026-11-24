@@ -30,6 +30,7 @@ Thumbs.db
 
 # Prisma
 prisma/migrations/**/migration_lock.toml
+generated
 
 # ESLint
 .eslintcache

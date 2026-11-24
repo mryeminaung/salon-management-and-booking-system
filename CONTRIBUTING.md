@@ -349,35 +349,47 @@ Use proper **HTTP status codes**:
 ```
 salon-management-and-booking-system/
 │
-├── client/                        # Next.js frontend
+├── salon-web/                      # Next.js frontend
 │   ├── src/
-│   │   ├── app/                   # Next.js App Router pages
-│   │   │   ├── owner/             # Owner routes
-│   │   │   ├── manager/           # Manager routes
-│   │   │   └── booking/           # Customer booking flow
-│   │   ├── components/            # Reusable React components
-│   │   │   ├── ui/                # shadcn/ui components
-│   │   │   ├── salon/             # Salon-specific components
-│   │   │   ├── booking/           # Booking flow components
-│   │   │   └── shared/            # Shared components
-│   │   ├── lib/                   # API client, utilities
-│   │   └── types/                 # TypeScript type definitions
+│   │   ├── app/                    # Next.js App Router pages
+│   │   ├── components/             # Shared components (ui/, layout, shared)
+│   │   │   ├── ui/                 # shadcn/ui components
+│   │   │   ├── theme-provider.tsx
+│   │   │   └── theme-toggle.tsx
+│   │   ├── features/               # Feature-based modules
+│   │   │   ├── landing/
+│   │   │   │   ├── components/     # Landing-specific components
+│   │   │   │   ├── api/            # Landing API calls (if needed)
+│   │   │   │   ├── hooks/          # Landing-specific hooks (if needed)
+│   │   │   │   └── index.ts        # Feature barrel export
+│   │   │   ├── booking/
+│   │   │   │   ├── components/
+│   │   │   │   ├── api/
+│   │   │   │   ├── hooks/
+│   │   │   │   └── index.ts
+│   │   │   └── salon/
+│   │   │       ├── components/
+│   │   │       ├── api/
+│   │   │       ├── hooks/
+│   │   │       └── index.ts
+│   │   ├── lib/                    # API client, utilities
+│   │   └── types/                  # TypeScript type definitions
 │   ├── .env.example
 │   ├── tailwind.config.ts
 │   └── package.json
 │
-├── server/                        # Express.js backend
+├── server/                         # Express.js backend
 │   ├── src/
-│   │   ├── routes/                # API route definitions
-│   │   ├── controllers/           # Request/response handlers
-│   │   ├── services/              # Business logic
-│   │   ├── middleware/            # Auth, validation, errors
-│   │   ├── lib/                   # Prisma client, utilities
-│   │   └── types/                 # TypeScript type definitions
+│   │   ├── routes/                 # API route definitions
+│   │   ├── controllers/            # Request/response handlers
+│   │   ├── services/               # Business logic
+│   │   ├── middleware/              # Auth, validation, errors
+│   │   ├── lib/                    # Prisma client, utilities
+│   │   └── types/                  # TypeScript type definitions
 │   ├── prisma/
-│   │   ├── schema.prisma          # Database schema
-│   │   ├── seed.ts                # Seed data
-│   │   └── migrations/            # Auto-generated migrations
+│   │   ├── schema.prisma           # Database schema
+│   │   ├── seed.ts                 # Seed data
+│   │   └── migrations/             # Auto-generated migrations
 │   ├── .env.example
 │   └── package.json
 │
@@ -385,6 +397,32 @@ salon-management-and-booking-system/
 ├── README.md
 └── CONTRIBUTING.md
 ```
+
+### Feature Module Convention
+
+Each feature lives in `src/features/<feature-name>/` with this structure:
+
+```
+features/
+└── <feature-name>/
+    ├── components/     # Feature-specific React components
+    ├── api/            # API client functions for this feature
+    ├── hooks/          # Feature-specific custom hooks
+    └── index.ts        # Barrel export for clean imports
+```
+
+**Usage:**
+```typescript
+// Import from feature barrel
+import { Hero, Navbar } from "@/features/landing";
+
+// Import specific component (less common)
+import { Hero } from "@/features/landing/components/hero";
+```
+
+**Rule of thumb:**
+- `src/components/` → shared, layout, shadcn/ui
+- `src/features/` → feature-specific code (components, api, hooks)
 
 ### File Naming
 
