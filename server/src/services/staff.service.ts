@@ -120,6 +120,32 @@ export const listStaff = async (userId: string, role: string) => {
 	});
 };
 
+export const getMyStaffProfile = async (userId: string) => {
+	const staff = await prisma.staff.findUnique({
+		where: { userId },
+		select: {
+			id: true,
+			specialty: true,
+			isActive: true,
+			createdAt: true,
+			salon: {
+				select: {
+					id: true,
+					name: true,
+					address: true,
+					phone: true,
+				},
+			},
+		},
+	});
+
+	if (!staff) {
+		throw new Error("Staff profile not found");
+	}
+
+	return staff;
+};
+
 export const getStaffById = async (staffId: string, userId: string) => {
 	const staff = await prisma.staff.findUnique({
 		where: { id: staffId },

@@ -2,6 +2,7 @@ import {
 	addStaff,
 	assignStaff,
 	getStaffById,
+	getMyStaffProfile,
 	listStaff,
 	removeStaff,
 	updateStaff,
@@ -24,6 +25,9 @@ router.post(
 
 // GET /api/staff - List staff (OWNER sees all salons, MANAGER sees assigned salon)
 router.get("/", authenticate, authorize("owner", "manager"), listStaff);
+
+// GET /api/staff/me - Authenticated staff member's own profile
+router.get("/me", authenticate, authorize("staff"), getMyStaffProfile);
 
 // GET /api/staff/:id - Get staff details (OWNER + MANAGER)
 router.get("/:id", authenticate, authorize("owner", "manager"), getStaffById);

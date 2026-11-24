@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import api from "@/lib/axios";
-import type { Appointment } from "@/features/appointment/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { ProtectedLayout } from "@/components/protected-layout";
 import { RoleGuard } from "@/components/role-guard";
 import { PageHeader } from "@/components/page-header";
 import { KpiCard } from "@/components/kpi-card";
+import { useAppointments } from "@/features/appointment/hooks/use-appointments";
+import { StaffDashboard } from "@/features/staff/components/staff-dashboard";
 import {
   DashboardQuickActions,
   type DashboardQuickAction,
@@ -37,7 +36,6 @@ import {
   UserCheck,
   Calendar,
   Settings,
-  Clock,
   TrendingUp,
   DollarSign,
 } from "lucide-react";
@@ -111,13 +109,6 @@ function getManagerActions(): DashboardQuickAction[] {
   ];
 }
 
-function getStaffActions(): DashboardQuickAction[] {
-  return [
-    { label: "My schedule", description: "View upcoming working hours", href: "/schedule", icon: Calendar },
-    { label: "My profile", description: "Update personal information", href: "/profile", icon: UserCheck },
-  ];
-}
-
 function getCustomerActions(): DashboardQuickAction[] {
   return [
     { label: "Browse salons", description: "Discover services near you", href: "/salons", icon: Scissors },
@@ -128,29 +119,36 @@ function getCustomerActions(): DashboardQuickAction[] {
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
-  const isLoading = useAuthStore((s) => s.isLoading);
-  const [appointments, setAppointments] = useState<Appointment[] | null>(null);
+  const isAuthLoading = useAuthStore((s) => s.isLoading);
+  const normalizedRole = user?.role?.toLowerCase() ?? "";
+  const { appointments, isLoading: appointmentsLoading, error: appointmentsError } = useAppointments(Boolean(user && ["manager", "staff", "customer"].includes(normalizedRole || "")));
 
-  useEffect(() => {
-    if (!user || !["manager", "staff", "customer"].includes(user.role.toLowerCase())) return;
-    let current = true;
-    api.get<{ data: Appointment[] }>("/api/appointments")
-      .then((response) => { if (current) setAppointments(response.data.data); })
-      .catch(() => { if (current) setAppointments([]); });
-    return () => { current = false; };
-  }, [user]);
-
-  if (isLoading) {
+  if (isAuthLoading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
+      <ProtectedLayout>
+        <div />
+      </ProtectedLayout>
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <ProtectedLayout>
+        <RoleGuard allowedRoles={["manager", "staff", "customer"]}><div /></RoleGuard>
+      </ProtectedLayout>
+    );
+  }
 
-  const normalizedRole = user.role?.toLowerCase();
+  if (normalizedRole === "staff") {
+    return (
+      <ProtectedLayout>
+        <RoleGuard allowedRoles={["staff"]}>
+          <StaffDashboard appointments={appointments} isLoading={appointmentsLoading} error={appointmentsError} />
+        </RoleGuard>
+      </ProtectedLayout>
+    );
+  }
+
   const now = new Date();
   const upcoming = appointments?.filter((appointment) =>
     (appointment.status === "pending" || appointment.status === "confirmed") && new Date(appointment.startAt) > now,
@@ -158,41 +156,38 @@ export default function DashboardPage() {
   const todayCount = appointments?.filter((appointment) =>
     new Date(appointment.startAt).toDateString() === now.toDateString() && appointment.status !== "cancelled",
   ).length;
-  const visitedSalons = appointments ? new Set(appointments.filter((appointment) => appointment.status === "completed").map((appointment) => appointment.salonName)).size : null;
+  const visitedSalons = new Set(appointments.filter((appointment) => appointment.status === "completed").map((appointment) => appointment.salonName)).size;
 
   const stats: StatCard[] =
     normalizedRole === "manager"
       ? [
           { title: "Total Staff", value: "12", description: "Active members", icon: Users },
           { title: "Services", value: "24", description: "Active services", icon: Scissors },
-          { title: "Today's Bookings", value: todayCount ?? "...", description: "Scheduled today", icon: Calendar },
+          { title: "Today's Bookings", value: appointmentsLoading ? "..." : todayCount, description: "Scheduled today", icon: Calendar },
           { title: "Monthly Revenue", value: "$10.0k", description: "+18% from last month", icon: DollarSign },
         ]
       : normalizedRole === "customer"
       ? [
-          { title: "My Appointments", value: upcoming ?? "...", description: "Upcoming", icon: Calendar },
-          { title: "Visited Salons", value: visitedSalons ?? "...", description: "Completed visits", icon: Scissors },
+          { title: "My Appointments", value: appointmentsLoading ? "..." : upcoming, description: "Upcoming", icon: Calendar },
+          { title: "Visited Salons", value: appointmentsLoading ? "..." : visitedSalons, description: "Completed visits", icon: Scissors },
         ]
-      : [
-          { title: "Today's Appointments", value: todayCount ?? "...", description: "Scheduled for you", icon: Calendar },
-          { title: "Upcoming", value: upcoming ?? "...", description: "Scheduled bookings", icon: Clock },
-        ];
+      : [];
 
   const actions =
     normalizedRole === "manager"
       ? getManagerActions()
-      : normalizedRole === "customer"
-      ? getCustomerActions()
-      : getStaffActions();
+      : getCustomerActions();
 
   return (
     <ProtectedLayout>
-      <RoleGuard allowedRoles={["manager", "staff", "customer"]}>
+      <RoleGuard allowedRoles={["manager", "customer"]}>
         <div className="space-y-8">
           <PageHeader
             title={`Welcome back, ${user.name}!`}
             description={`${normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1)} Dashboard`}
           />
+
+          {appointmentsError && <p className="rounded-xl border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive">{appointmentsError}</p>}
 
           {/* Stat Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

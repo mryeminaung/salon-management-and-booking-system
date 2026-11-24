@@ -28,6 +28,19 @@ export const listStaff = async (
 	}
 };
 
+export const getMyStaffProfile = async (
+	req: AuthRequest,
+	res: Response,
+	next: NextFunction,
+): Promise<void> => {
+	try {
+		const staff = await staffService.getMyStaffProfile(req.user!.id);
+		res.json({ success: true, data: staff });
+	} catch (error) {
+		next(error);
+	}
+};
+
 export const getStaffById = async (
 	req: AuthRequest,
 	res: Response,

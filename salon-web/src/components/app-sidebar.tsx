@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { navConfig, type Role } from "@/config/navigation";
 import { useAuthStore } from "@/stores/auth-store";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AudioLinesIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,6 +22,7 @@ import * as React from "react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const user = useAuthStore((s) => s.user);
+	const isLoading = useAuthStore((s) => s.isLoading);
 	const pathname = usePathname();
 	const normalizedRole = user?.role?.toLowerCase() as Role | undefined;
 	const navConfigData = normalizedRole ? navConfig[normalizedRole] : null;
@@ -53,9 +55,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 							</div>
 							<div className="grid flex-1 text-left text-sm leading-tight">
 								<span className="truncate font-semibold">SalonHub</span>
-								<span className="truncate text-xs capitalize text-muted-foreground">
-									{user?.role}
-								</span>
+								{isLoading ? <Skeleton className="mt-1 h-2.5 w-14" /> : <span className="truncate text-xs capitalize text-muted-foreground">{user?.role}</span>}
 							</div>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
@@ -63,7 +63,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			</SidebarHeader>
 
 			<SidebarContent className="px-2">
-				{navConfigData?.groups.map((group, groupIdx) => (
+				{isLoading ? (
+					<>
+						{[3, 3].map((itemCount, groupIndex) => (
+							<React.Fragment key={groupIndex}>
+								{groupIndex > 0 && <SidebarSeparator className="my-1" />}
+								<SidebarGroup className="p-0 pt-3">
+									<SidebarGroupLabel><Skeleton className="h-2.5 w-16" /></SidebarGroupLabel>
+									<SidebarMenu className="gap-1">
+										{Array.from({ length: itemCount }).map((_, itemIndex) => (
+											<SidebarMenuItem key={itemIndex}>
+												<div className="flex h-10 items-center gap-3 rounded-md px-2">
+													<Skeleton className="size-5 shrink-0 rounded-md" />
+													<Skeleton className="h-3 w-24 group-data-[collapsible=icon]:hidden" />
+												</div>
+											</SidebarMenuItem>
+										))}
+									</SidebarMenu>
+								</SidebarGroup>
+							</React.Fragment>
+						))}
+					</>
+				) : navConfigData?.groups.map((group, groupIdx) => (
 					<React.Fragment key={group.label}>
 						{groupIdx > 0 && <SidebarSeparator className="my-1" />}
 						<SidebarGroup className="p-0 pt-2">

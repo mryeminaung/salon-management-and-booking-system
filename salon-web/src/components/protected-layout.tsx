@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DashboardBreadcrumb } from "@/components/dashboard-breadcrumb";
 import { NavUser } from "@/components/nav-user";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	SidebarInset,
 	SidebarProvider,
@@ -41,8 +42,19 @@ const demoNotifications = [
 	{ id: 6, icon: UserRoundPlusIcon, title: "New customer registered", desc: "Olivia Brown created an account and browsed your salon.", time: "1 day", unread: false },
 ];
 
+function ProtectedContentSkeleton() {
+	return (
+		<div className="w-full max-w-6xl space-y-8" aria-label="Loading page" aria-busy="true">
+			<div className="space-y-3"><Skeleton className="h-4 w-32" /><Skeleton className="h-10 w-72 max-w-full" /><Skeleton className="h-4 w-96 max-w-full" /></div>
+			<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-32 rounded-xl" />)}</div>
+			<div className="grid gap-4 lg:grid-cols-7"><Skeleton className="h-80 rounded-2xl lg:col-span-4" /><Skeleton className="h-80 rounded-2xl lg:col-span-3" /></div>
+		</div>
+	);
+}
+
 export function ProtectedLayout({ children }: { children: React.ReactNode }) {
 	const user = useAuthStore((s) => s.user);
+	const isLoading = useAuthStore((s) => s.isLoading);
 	const [scrolled, setScrolled] = useState(false);
 	const [notifications, setNotifications] = useState(demoNotifications);
 
@@ -62,6 +74,8 @@ export function ProtectedLayout({ children }: { children: React.ReactNode }) {
 		return () => window.removeEventListener("scroll", onScroll);
 	}, []);
 
+	if (!isLoading && !user) return <>{children}</>;
+
 	return (
 		<SidebarProvider>
 			<AppSidebar />
@@ -75,8 +89,11 @@ export function ProtectedLayout({ children }: { children: React.ReactNode }) {
 					<div className="border rounded-md">
 						<SidebarTrigger className="hover:cursor-pointer" />
 					</div>
-					<DashboardBreadcrumb />
+					{isLoading ? <Skeleton className="h-4 w-36" /> : <DashboardBreadcrumb />}
 					<div className="ml-auto flex items-center gap-1">
+						{isLoading ? (
+							<><Skeleton className="size-9 rounded-xl" /><Skeleton className="size-9 rounded-full" /></>
+						) : <>
 						<DropdownMenu>
 							<DropdownMenuTrigger
 								render={
@@ -147,7 +164,8 @@ export function ProtectedLayout({ children }: { children: React.ReactNode }) {
 								</div>
 								<div className="border-t border-border/70 p-2">
 									<DropdownMenuItem
-										render={<Link href="/settings/notifications" />}
+										nativeButton={false}
+										render={<Link href={user?.role === "owner" ? "/admin/settings/notifications" : "/settings/notifications"} />}
 										className="flex cursor-pointer items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-semibold text-gold">
 										<Settings2Icon className="size-4" /> Notification settings
 									</DropdownMenuItem>
@@ -164,10 +182,11 @@ export function ProtectedLayout({ children }: { children: React.ReactNode }) {
 								}}
 							/>
 						)}
+						</>}
 					</div>
 				</header>
 				<main className="flex-1 p-6 flex justify-center">
-					<div className="w-full max-w-6xl">{children}</div>
+					{isLoading ? <ProtectedContentSkeleton /> : <div className="w-full max-w-6xl">{children}</div>}
 				</main>
 			</SidebarInset>
 		</SidebarProvider>

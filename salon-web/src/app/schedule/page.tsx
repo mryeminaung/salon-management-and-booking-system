@@ -2,13 +2,13 @@
 
 import { RoleGuard } from "@/components/role-guard";
 import { ProtectedLayout } from "@/components/protected-layout";
-import { AppointmentList } from "@/features/appointment/components/appointment-list";
+import { StaffSchedule } from "@/features/staff/components/staff-schedule";
 
 export default function SchedulePage() {
   return (
     <ProtectedLayout>
       <RoleGuard allowedRoles={["staff"]}>
-        <AppointmentList role="staff" />
+        <StaffSchedule />
       </RoleGuard>
     </ProtectedLayout>
   );

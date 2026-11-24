@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw new Error(data.error || "Login failed");
     }
 
-    set({ user: data.data.user, isAuthenticated: true });
+    set({ user: data.data.user, isAuthenticated: true, isLoading: false });
     return data.data.user;
   },
 
@@ -73,7 +73,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       throw new Error(data.error || "Registration failed");
     }
 
-    set({ user: data.data.user, isAuthenticated: true });
+    set({ user: data.data.user, isAuthenticated: true, isLoading: false });
     return data.data.user;
   },
 
@@ -81,7 +81,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await api.post("/api/auth/logout");
     } finally {
-      set({ user: null, isAuthenticated: false });
+      set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
@@ -104,7 +104,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setUser: (user) => {
-    set({ user, isAuthenticated: !!user });
+    set({ user, isAuthenticated: !!user, isLoading: false });
   },
 
   updateProfile: async (data) => {
