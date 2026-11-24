@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   Avatar,
   AvatarFallback,
@@ -16,7 +17,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuthStore } from "@/stores/auth-store"
-import { ChevronsUpDownIcon, SparklesIcon, BadgeCheckIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import {
+  BadgeCheckIcon,
+  BellIcon,
+  ChevronsUpDownIcon,
+  LogOutIcon,
+  MonitorIcon,
+  PaletteIcon,
+  UserRoundIcon,
+} from "lucide-react"
 
 export function NavUser({
   user,
@@ -29,6 +38,8 @@ export function NavUser({
 }) {
   const router = useRouter()
   const logout = useAuthStore((s) => s.logout)
+  const role = useAuthStore((s) => s.user?.role)
+  const settingsBase = role === "owner" ? "/admin/settings" : "/settings"
 
   const handleLogout = async () => {
     await logout()
@@ -70,24 +81,25 @@ export function NavUser({
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem>
-            <SparklesIcon />
-            Upgrade to Pro
+          <DropdownMenuItem nativeButton={false} render={<Link href={`${settingsBase}/profile`} />}>
+            <UserRoundIcon />
+            Profile
           </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem nativeButton={false} render={<Link href={`${settingsBase}/account`} />}>
             <BadgeCheckIcon />
             Account
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <CreditCardIcon />
-            Billing
+          <DropdownMenuItem nativeButton={false} render={<Link href={`${settingsBase}/appearance`} />}>
+            <PaletteIcon />
+            Appearance
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem nativeButton={false} render={<Link href={`${settingsBase}/notifications`} />}>
             <BellIcon />
             Notifications
+          </DropdownMenuItem>
+          <DropdownMenuItem nativeButton={false} render={<Link href={`${settingsBase}/display`} />}>
+            <MonitorIcon />
+            Display
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
